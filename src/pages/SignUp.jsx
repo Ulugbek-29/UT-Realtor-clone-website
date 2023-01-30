@@ -33,6 +33,7 @@ const SignUp = () => {
     e.preventDefault();
 
     try {
+      // Authorization with email and password step:
       const auth = getAuth();
       const userCredential = await createUserWithEmailAndPassword(
         auth,
@@ -45,9 +46,10 @@ const SignUp = () => {
       const user = userCredential.user;
 
       const formDataCopy = { ...formData };
-      delete formDataCopy.password;
-      formDataCopy.timestamp = serverTimestamp();
+      delete formDataCopy.password; // Password should not be saved into Database
+      formDataCopy.timestamp = serverTimestamp(); // Adding a timestamp property into the user OBJ
 
+      // Storing the authorized user (as a new user) into the Database step:
       await setDoc(doc(db, "users", user.uid), formDataCopy); // Saving user with unique id coming from authentication into firestore database
 
       toast.success("Sign up was successful !");
