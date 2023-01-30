@@ -2,6 +2,15 @@ import { useState } from "react";
 import { AiFillEye, AiFillEyeInvisible } from "react-icons/ai";
 import { Link } from "react-router-dom";
 import OAuth from "../components/OAuth";
+import {
+  getAuth,
+  createUserWithEmailAndPassword,
+  updateProfile,
+} from "firebase/auth";
+import { db } from "../firebase";
+import { doc, serverTimestamp, setDoc } from "firebase/firestore";
+import { useNavigate } from "react-router-dom";
+import { toast } from "react-toastify";
 
 const SignUp = () => {
   const [showPassword, setShowPassword] = useState(false);
@@ -11,12 +20,42 @@ const SignUp = () => {
     password: "",
   });
   const { name, email, password } = formData;
+  const navigate = useNavigate();
 
   function onChangeHandler(e) {
     setFormData((prevState) => ({
       ...prevState,
       [e.target.id]: e.target.value,
     }));
+  }
+
+  async function onSubmitHandler(e) {
+    e.preventDefault();
+
+    try {
+      const auth = getAuth();
+      const userCredential = await createUserWithEmailAndPassword(
+        auth,
+        email,
+        password
+      );
+
+      updateProfile(auth.currentUser, { displayName: name });
+
+      const user = userCredential.user;
+
+      const formDataCopy = { ...formData };
+      delete formDataCopy.password;
+      formDataCopy.timestamp = serverTimestamp();
+
+      await setDoc(doc(db, "users", user.uid), formDataCopy); // Saving user with unique id coming from authentication into firestore database
+
+      toast.success("Sign up was successful !");
+
+      navigate("/"); // After signing up a new user, this user will be navigated to the home page
+    } catch (error) {
+      toast.error("All fields are required to be filled !");
+    }
   }
 
   return (
@@ -34,7 +73,7 @@ const SignUp = () => {
           </div>
 
           <div className="w-full md:w-[74%] lg:w-[40%] lg:ml-16">
-            <form>
+            <form onSubmit={onSubmitHandler}>
               <input
                 className="w-full mb-6 px-4 py-2 text-xl text-gray-700 bg-white border-gray-300 rounded transition ease-in-out"
                 type="text"
