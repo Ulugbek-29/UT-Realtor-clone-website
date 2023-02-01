@@ -1,7 +1,8 @@
 import { getAuth, updateProfile } from "firebase/auth";
 import { doc, updateDoc } from "firebase/firestore";
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { FcHome } from "react-icons/fc";
+import { useNavigate, Link } from "react-router-dom";
 import { toast } from "react-toastify";
 import { db } from "../firebase";
 
@@ -70,7 +71,7 @@ function Profile() {
               className="w-full mb-6 px-4 py-2 text-xl text-gray-700 bg-white border-gray-300 rounded transition ease-in-out"
             />
 
-            <div className="flex justify-between whitespace-nowrap mb-6">
+            <div className="flex justify-between items-center whitespace-nowrap mb-6">
               <p>
                 Do you want to change your name?{" "}
                 <span
@@ -91,6 +92,19 @@ function Profile() {
               </p>
             </div>
           </form>
+
+          <button
+            type="button"
+            className="w-full bg-blue-600 text-white uppercase px-7 py-3 text-sm font-medium rounded shadow-md hover:bg-blue-700 transition duration-200 ease-in-out hover:shadow-lg active:bg-blue-800"
+          >
+            <Link
+              to="/create-listing"
+              className="flex justify-center items-center"
+            >
+              <FcHome className="mr-2 text-2xl bg-red-200 rounded-full p-1 border-2" />
+              Sell or Rent your home
+            </Link>
+          </button>
         </div>
       </section>
     </>
