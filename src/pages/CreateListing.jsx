@@ -1,6 +1,23 @@
 import { useState } from "react";
+import { toast } from "react-toastify";
+import Spinner from "../components/Spinner";
+import {
+  getStorage,
+  ref,
+  uploadBytesResumable,
+  getDownloadURL,
+} from "firebase/storage";
+import { getAuth } from "firebase/auth";
+import { v4 as uuidv4 } from "uuid";
+import { serverTimestamp, addDoc, collection } from "firebase/firestore";
+import { db } from "../firebase";
+import { useNavigate } from "react-router-dom";
 
 const CreateListing = () => {
+  const auth = getAuth();
+  const navigate = useNavigate();
+  const [geolocationEnabled, setGeolocationEnabled] = useState(false);
+  const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
     type: "rent",
     name: "",
@@ -13,6 +30,9 @@ const CreateListing = () => {
     offer: true,
     regularPrice: 0,
     discountedPrice: 0,
+    images: [],
+    latitude: 0,
+    longitude: 0,
   });
 
   const {
@@ -27,14 +47,156 @@ const CreateListing = () => {
     offer,
     regularPrice,
     discountedPrice,
+    images,
+    latitude,
+    longitude,
   } = formData;
 
-  function onChangeHandler() {}
+  function onChangeHandler(e) {
+    let boolean = null;
+
+    if (e.target.value === "true") {
+      boolean = true;
+    }
+
+    if (e.target.value === "false") {
+      boolean = false;
+    }
+
+    // For Images:
+    if (e.target.files) {
+      setFormData((prevState) => ({
+        ...prevState,
+        images: e.target.files,
+      }));
+    }
+
+    // For Booleans/ Text /Numbers
+    if (!e.target.files) {
+      setFormData((prevState) => ({
+        ...prevState,
+        [e.target.id]: boolean ?? e.target.value,
+      }));
+    }
+  }
+
+  async function onSubmitHandler(e) {
+    e.preventDefault();
+    setLoading(true);
+
+    if (+discountedPrice >= +regularPrice) {
+      // plus converts string value to number
+      // (input elements give values as string type )
+      setLoading(false);
+      toast.error("Discounted price needs to be less than regular price !");
+      return;
+    }
+
+    if (images.length > 6) {
+      setLoading(false);
+      toast.error("Maximum 6 images are allowed to be uploaded !");
+      return;
+    }
+
+    let geolocation = {};
+    let location;
+    if (geolocationEnabled) {
+      // This if block does NOT work in our case, because we didn't enable GOOGLE's Geocode API
+      const response = await fetch(
+        `https://maps.googleapis.com/maps/api/geocode/json?address=${address}&key=${process.env.REACT_APP_GEOCODE_API_KEY}`
+      );
+      const data = await response.json();
+
+      geolocation.lat = data.results[0]?.geometry.location.lat ?? 0;
+      geolocation.lng = data.results[0]?.geometry.location.lng ?? 0;
+
+      location = data.status === "ZERO_RESULTS" && undefined;
+
+      if (location === undefined || location.includes("undefined")) {
+        setLoading(false);
+        toast.error("Please enter a correct address !");
+        return;
+      }
+    } else {
+      geolocation.lat = latitude;
+      geolocation.lng = longitude;
+    }
+
+    async function storeImage(image) {
+      return new Promise((resolve, reject) => {
+        const storage = getStorage();
+        const filename = `${auth.currentUser.uid}-${image.name}-${uuidv4()}`;
+        const storageRef = ref(storage, filename);
+        const uploadTask = uploadBytesResumable(storageRef, image);
+
+        uploadTask.on(
+          "state_changed",
+          (snapshot) => {
+            // Observe state change events such as progress, pause, and resume
+            // Get task progress, including the number of bytes uploaded and the total number of bytes to be uploaded
+            const progress =
+              (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+            console.log("Upload is " + progress + "% done");
+            switch (snapshot.state) {
+              case "paused":
+                console.log("Upload is paused");
+                break;
+              case "running":
+                console.log("Upload is running");
+                break;
+            }
+          },
+          (error) => {
+            // Handle unsuccessful uploads
+            reject(error);
+          },
+          () => {
+            // Handle successful uploads on complete
+            // For instance, get the download URL: https://firebasestorage.googleapis.com/...
+            getDownloadURL(uploadTask.snapshot.ref).then((downloadURL) => {
+              resolve(downloadURL);
+            });
+          }
+        );
+      });
+    }
+
+    const imgUrls = await Promise.all(
+      [...images].map((image) => storeImage(image))
+    ).catch((error) => {
+      setLoading(false);
+      toast.error("Images could not be uploaded !");
+      return;
+    });
+
+    const formDataCopy = {
+      ...formData,
+      imgUrls,
+      geolocation,
+      timestamp: serverTimestamp(),
+    };
+
+    // Before storing form Data into the Database, we need to delete some props:
+    delete formDataCopy.images;
+    delete formDataCopy.latitude;
+    delete formDataCopy.longitude;
+    !formDataCopy.offer && delete formDataCopy.discountedPrice;
+
+    // STORING the form data into the Database:
+    const docRef = await addDoc(collection(db, "listings"), formDataCopy);
+    setLoading(false);
+    toast.success("Listing created successfully !");
+    navigate(`/category/${formDataCopy.type}/${docRef.id}`);
+  }
+
+  if (loading) {
+    return <Spinner />;
+  }
 
   return (
     <main className="max-w-md px-2 mx-auto">
       <h1 className="text-3xl text-center mt-6 font-bold">Create a Listing</h1>
-      <form>
+      <form onSubmit={onSubmitHandler}>
         <p className="text-lg mt-6 mb-2 font-semibold">Sell / Rent</p>
         <div className="flex space-x-6">
           <button
@@ -43,7 +205,7 @@ const CreateListing = () => {
             value="sale"
             onClick={onChangeHandler}
             className={`px-7 py-3 font-medium text-sm tracking-wider uppercase shadow-md rounded hover:shadow-lg active:shadow-lg transition duration-200 ease-in-out w-full ${
-              type === "sale"
+              type === "rent"
                 ? "bg-white text-black"
                 : "bg-slate-700 text-white"
             }`}
@@ -57,7 +219,7 @@ const CreateListing = () => {
             value="rent"
             onClick={onChangeHandler}
             className={`px-7 py-3 font-medium text-sm tracking-wider uppercase shadow-md rounded hover:shadow-lg active:shadow-lg transition duration-200 ease-in-out w-full ${
-              type === "rent"
+              type === "sale"
                 ? "bg-white text-black"
                 : "bg-slate-700 text-white"
             }`}
@@ -173,6 +335,37 @@ const CreateListing = () => {
           onChange={onChangeHandler}
           className="w-full px-4 py-2 text-xl text-gray-700 bg-white border border-gray-300 rounded transition duration-200 ease-out focus:border-slate-600 mb-6"
         />
+
+        {!geolocationEnabled && (
+          <div className="mb-6 flex space-x-6 items-center">
+            <div>
+              <p className="text-lg mb-2 font-semibold">Latitude</p>
+              <input
+                type="number"
+                id="latitude"
+                value={latitude}
+                onChange={onChangeHandler}
+                min="-90"
+                max="90"
+                required
+                className="px-4 w-full py-2 text-xl text-gray-700 bg-white border border-gray-300 rounded transition duration-200 ease-in-out focus:border-slate-600 text-center"
+              />
+            </div>
+            <div>
+              <p className="text-lg mb-2 font-semibold">Longitude</p>
+              <input
+                type="number"
+                id="longitude"
+                value={longitude}
+                onChange={onChangeHandler}
+                min="-180"
+                max="180"
+                required
+                className="px-4 w-full py-2 text-xl text-gray-700 bg-white border border-gray-300 rounded transition duration-200 ease-in-out focus:border-slate-600 text-center"
+              />
+            </div>
+          </div>
+        )}
 
         <p className="text-lg mb-2 font-semibold">Description</p>
         <textarea
