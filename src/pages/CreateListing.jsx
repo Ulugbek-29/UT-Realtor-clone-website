@@ -174,6 +174,7 @@ const CreateListing = () => {
       imgUrls,
       geolocation,
       timestamp: serverTimestamp(),
+      userRef: auth.currentUser.uid,
     };
 
     // Before storing form Data into the Database, we need to delete some props:
