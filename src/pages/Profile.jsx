@@ -143,9 +143,9 @@ function Profile() {
       </section>
 
       {!loading && listings.length > 0 && (
-        <div className="max-w-7xl px-3 mt-6 mx-auto">
-          <h2 className="text-2xl text-center font-semibold">My Listings</h2>
-          <ul>
+        <div className="max-w-7xl px-3 mt-12 mx-auto">
+          <h2 className="text-4xl text-center font-semibold">My Listings</h2>
+          <ul className="grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 mt-8 mb-6">
             {listings.map((listing) => (
               <ListingItem
                 key={listing.id}
