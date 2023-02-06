@@ -1,8 +1,10 @@
 import Moment from "react-moment";
 import { Link } from "react-router-dom";
 import { MdLocationOn } from "react-icons/md";
+import { FaTrash } from "react-icons/fa";
+import { MdEdit } from "react-icons/md";
 
-const ListingItem = ({ id, listing }) => {
+const ListingItem = ({ id, listing, onEdit, onDelete }) => {
   return (
     <li className="relative bg-white flex flex-col justify-between items-center shadow-md hover:shadow-xl rounded-md overflow-hidden transition-shadow duration-200 ease-in-out m-[10px]">
       <Link className="contents" to={`/category/${listing.type}/${id}`}>
@@ -10,6 +12,7 @@ const ListingItem = ({ id, listing }) => {
           className="h-[250px] w-full object-cover hover:scale-105 transition-scale duration-200 ease-in-out"
           loading="lazy"
           src={listing.imgUrls[0]}
+          alt=""
         />
 
         <Moment
@@ -56,6 +59,20 @@ const ListingItem = ({ id, listing }) => {
           </div>
         </div>
       </Link>
+
+      {onDelete && (
+        <FaTrash
+          className="absolute bottom-2 right-2 h-[14px] cursor-pointer text-red-500"
+          onClick={() => onDelete(listing.id)}
+        />
+      )}
+
+      {onEdit && (
+        <MdEdit
+          className="absolute bottom-2 right-8 h-4 cursor-pointer "
+          onClick={() => onEdit(listing.id)}
+        />
+      )}
     </li>
   );
 };
