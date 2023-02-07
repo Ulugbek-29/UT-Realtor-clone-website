@@ -79,7 +79,7 @@ const Home = () => {
     fetchRentListings();
   }, []);
 
-  // 2. Fetch Listings Data from Firebase DB where TYPE == "sale":
+  // 3. Fetch Listings Data from Firebase DB where TYPE == "sale":
   const [saleListings, setSaleListings] = useState(null);
 
   useEffect(() => {
