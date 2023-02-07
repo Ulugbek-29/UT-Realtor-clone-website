@@ -27,7 +27,8 @@ export default function Contact({ userRef, listing }) {
       {landlord !== null && (
         <div className="flex flex-col w-full">
           <p>
-            Contact {landlord.name} for the {listing.name.toLowerCase()}
+            Contact <span className="font-bold">{landlord.name}</span>, the
+            owner of this advertisement listing.
           </p>
           <div className="mt-3 mb-6">
             <textarea
@@ -43,7 +44,7 @@ export default function Contact({ userRef, listing }) {
             href={`mailto:${landlord.email}?Subject=${listing.name}&body=${message}`}
           >
             <button
-              className="px-7 py-3 bg-blue-600 text-white rounded text-sm uppercase shadow-md hover:bg-blue-700 hover:shadow-lg focus:bg-blue-700 focus:shadow-lg active:bg-blue-800 active:shadow-lg transition duration-150 ease-in-out w-full text-center mb-6"
+              className="px-7 py-3 bg-blue-600 text-white rounded text-sm uppercase shadow-md hover:bg-blue-700 hover:shadow-lg focus:bg-blue-700 focus:shadow-lg active:bg-blue-800 active:shadow-lg transition duration-200 ease-in-out w-full tracking-wider text-center mb-6"
               type="button"
             >
               Send Message
